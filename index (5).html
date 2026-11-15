@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Inventory & Order Client</title>
+  <style>
+    :root { --navy:#12345a; --blue:#1769aa; --pale:#eef5fc; --ink:#1c2b3a; --muted:#64748b; --line:#d9e3ee; }
+    * { box-sizing:border-box; }
+    body { margin:0; font-family:Arial, sans-serif; background:#f4f7fb; color:var(--ink); }
+    header { background:linear-gradient(120deg,var(--navy),var(--blue)); color:white; padding:30px 20px; }
+    .wrap { max-width:980px; margin:auto; }
+    header h1 { margin:0 0 8px; font-size:27px; }
+    header p { margin:0; opacity:.9; }
+    main { padding:24px 16px 50px; }
+    .grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(260px,1fr)); gap:18px; }
+    .card { background:white; border:1px solid var(--line); border-radius:12px; padding:20px; box-shadow:0 3px 12px #16324f0c; }
+    h2 { color:var(--navy); font-size:19px; margin:0 0 14px; }
+    label { display:block; font-size:13px; font-weight:bold; margin:12px 0 6px; }
+    input { width:100%; padding:11px; border:1px solid #bdcbd9; border-radius:7px; font-size:14px; }
+    button { border:0; background:var(--blue); color:white; padding:11px 15px; border-radius:7px; font-weight:bold; cursor:pointer; margin-top:12px; }
+    button:hover { background:var(--navy); }
+    .secondary { background:#e7f0fa; color:var(--navy); }
+    .status { margin-top:12px; padding:12px; background:var(--pale); border-radius:7px; font-size:13px; white-space:pre-wrap; overflow-wrap:anywhere; min-height:44px; }
+    .muted { color:var(--muted); font-size:13px; line-height:1.5; }
+    footer { text-align:center; color:var(--muted); font-size:12px; padding:20px; }
+    code { background:#edf2f7; padding:2px 5px; border-radius:4px; }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="wrap">
+      <h1>Inventory & Order Management</h1>
+      <p>Client application | Presentation layer</p>
+    </div>
+  </header>
+  <main class="wrap">
+    <div class="card" style="margin-bottom:18px">
+      <h2>Server connection</h2>
+      <p class="muted">Enter the public URL of your deployed Flask server. Do not enter a URL containing a trailing endpoint such as <code>/inventory</code>.</p>
+      <label for="api">Flask API base URL</label>
+      <input id="api" type="url" placeholder="https://your-backend.onrender.com">
+      <button onclick="saveUrl()">Save server URL</button>
+      <div id="connection" class="status">No server URL configured.</div>
+    </div>
+
+    <div class="grid">
+      <section class="card">
+        <h2>Inventory service</h2>
+        <p class="muted">Check whether the inventory service is reachable and request the inventory endpoint.</p>
+        <button onclick="testEndpoint('/')">Check service status</button>
+        <button class="secondary" onclick="testEndpoint('/inventory')">View inventory endpoint</button>
+        <div id="inventoryResult" class="status">Results will appear here.</div>
+      </section>
+
+      <section class="card">
+        <h2>Order service</h2>
+        <p class="muted">Client-side section reserved for the Order Service API. Connect it after the order endpoint has been implemented on the server.</p>
+        <label for="orderPath">Order endpoint path</label>
+        <input id="orderPath" value="/orders" aria-label="Order endpoint path">
+        <button class="secondary" onclick="testOrder()">Test order endpoint</button>
+        <div id="orderResult" class="status">Order endpoint has not been tested.</div>
+      </section>
+    </div>
+
+    <section class="card" style="margin-top:18px">
+      <h2>How this client-server application works</h2>
+      <ol class="muted">
+        <li>The user interacts with this webpage, which is the presentation layer (client).</li>
+        <li>The client sends HTTP requests to the Flask server.</li>
+        <li>The server processes requests and communicates with the database when database operations are implemented.</li>
+        <li>The server returns a response, which the client displays.</li>
+      </ol>
+      <p class="muted"><strong>Current scope:</strong> This interface tests the Flask routes described in the setup guide. It does not create, edit, or delete inventory or orders until those API operations are implemented on the backend.</p>
+    </section>
+  </main>
+  <footer>Inventory & Order Management Client · Presentation Layer</footer>
+
+  <script>
+    const apiInput = document.getElementById('api');
+    apiInput.value = localStorage.getItem('inventoryApiUrl') || '';
+
+    function baseUrl() {
+      return apiInput.value.trim().replace(/\/+$/, '');
+    }
+    function saveUrl() {
+      const url = baseUrl();
+      if (!url) {
+        document.getElementById('connection').textContent = 'Enter your deployed Flask server URL first.';
+        return;
+      }
+      localStorage.setItem('inventoryApiUrl', url);
+      document.getElementById('connection').textContent = 'Server URL saved: ' + url;
+    }
+    async function requestPath(path, targetId) {
+      const target = document.getElementById(targetId);
+      const base = baseUrl();
+      if (!base) {
+        target.textContent = 'Error: Enter your deployed Flask server URL above.';
+        return;
+      }
+      target.textContent = 'Sending request...';
+      try {
+        const response = await fetch(base + path);
+        const body = await response.text();
+        let formatted = body;
+        try { formatted = JSON.stringify(JSON.parse(body), null, 2); } catch (_) {}
+        target.textContent = 'HTTP ' + response.status + '\n' + formatted;
+      } catch (error) {
+        target.textContent = 'Request failed: ' + error.message +
+          '\nCheck that the backend is deployed, the URL is correct, and Flask allows cross-origin requests (CORS).';
+      }
+    }
+    function testEndpoint(path) {
+      requestPath(path, 'inventoryResult');
+    }
+    function testOrder() {
+      const path = document.getElementById('orderPath').value.trim();
+      requestPath(path.startsWith('/') ? path : '/' + path, 'orderResult');
+    }
+  </script>
+</body>
+</html>
